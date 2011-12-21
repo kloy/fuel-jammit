@@ -48,15 +48,17 @@ class Jammit extends \Asset {
 			return;
 		}
 
+		\Config::load('jammit', true);
+
+		static::$_folders = array(
+			'css'	=>	\Config::get('jammit.css_dir'),
+			'js' 	=>	\Config::get('jammit.js_dir'),
+			'img'	=>	\Config::get('jammit.img_dir'),
+		);
+
 		static::$_env = \FUEL::$env;
 		static::_load_yaml_config();
 		static::_add_assets();
-
-		// static::$_folders = array(
-		//	'css'	=>	\Config::get('jammit.css_dir'),
-		//	'js' 	=>	\Config::get('jammit.js_dir'),
-		//	'img'	=>	\Config::get('jammit.img_dir'),
-		// );
 
 		static::$is_initialized = true;
 	}
