@@ -35,6 +35,6 @@ return array(
 	 * Arrays of paths are allowed as well as a string like in Asset's config
 	 */
 	'img_dir' => 'img/',
-	'js_dir' => 'js/',
+	'js_dir' => array('js/'),
 	'css_dir' => 'css/'
 );

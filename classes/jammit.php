@@ -72,6 +72,108 @@ class Jammit extends \Asset {
 	}
 
 	/**
+	 * Renders the given group.  Each tag will be separated by a line break.
+	 * You can optionally tell it to render the files raw.  This means that
+	 * all CSS and JS files in the group will be read and the contents included
+	 * in the returning value.
+	 *
+	 * @param   mixed   the group to render
+	 * @param   bool    whether to return the raw file or not
+	 * @return  string  the group's output
+	 */
+	public static function render($group, $raw = false)
+	{
+		if (is_string($group))
+		{
+			$group = isset(static::$_groups[$group])
+				? static::$_groups[$group] : array();
+		}
+
+		$css = '';
+		$js = '';
+		$img = '';
+		foreach ($group as $key => $item)
+		{
+			$type = $item['type'];
+			$filename = $item['file'];
+			$attr = $item['attr'];
+
+			if ( ! preg_match('|^(\w+:)?//|', $filename))
+			{
+				// make sure $folders is an array
+				$folders = array();
+				if(is_string(static::$_folders[$type]))
+				{
+					$folders[] = static::$_folders[$type];
+				}
+				else
+				{
+					$folders = static::$_folders[$type];
+				}
+
+				$found_file = false;
+				foreach($folders as $folder)
+				{
+					if ($found_file)
+					{
+						continue;
+					}
+					if (($file = static::find_file($filename, $folder)) !== false)
+					{
+						$found_file = true;
+					}
+				}
+
+				if ( ! $found_file)
+				{
+					throw new \FuelException('Could not find asset: '.$filename);
+				}
+
+				$raw or $file = static::$_asset_url.$file.(static::$_add_mtime ? '?'.filemtime($file) : '');
+			}
+			else
+			{
+				$file = $filename;
+			}
+
+			switch($type)
+			{
+				case 'css':
+					if ($raw)
+					{
+						return '<style type="text/css">'.PHP_EOL.file_get_contents($file).PHP_EOL.'</style>';
+					}
+					$attr['rel'] = 'stylesheet';
+					$attr['type'] = 'text/css';
+					$attr['href'] = $file;
+
+					$css .= html_tag('link', $attr).PHP_EOL;
+				break;
+				case 'js':
+					if ($raw)
+					{
+						return html_tag('script', array('type' => 'text/javascript'), PHP_EOL.file_get_contents($file).PHP_EOL).PHP_EOL;
+					}
+					$attr['type'] = 'text/javascript';
+					$attr['src'] = $file;
+
+					$js .= html_tag('script', $attr, '').PHP_EOL;
+				break;
+				case 'img':
+					$attr['src'] = $file;
+					$attr['alt'] = isset($attr['alt']) ? $attr['alt'] : '';
+
+					$img .= html_tag('img', $attr );
+				break;
+			}
+
+		}
+
+		// return them in the correct order
+		return $css.$js.$img;
+	}
+
+	/**
 	 * Adds path to search when finding assets.
 	 *
 	 * @param string $path
