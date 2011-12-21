@@ -59,9 +59,9 @@ class Jammit extends \Asset {
 		\Config::load('jammit', true);
 
 		static::$_folders = array(
-			'css'	=>	\Config::get('jammit.css_dir'),
-			'js' 	=>	\Config::get('jammit.js_dir'),
-			'img'	=>	\Config::get('jammit.img_dir'),
+			'css'	=>	\Config::get('jammit.css_dir', 'css/'),
+			'js' 	=>	\Config::get('jammit.js_dir', 'js/'),
+			'img'	=>	\Config::get('jammit.img_dir', 'img/'),
 		);
 
 		static::$_env = \FUEL::$env;
@@ -211,16 +211,28 @@ class Jammit extends \Asset {
 	 */
 	protected static function _get_file_and_path($asset)
 	{
-		preg_match(
-			'@^public/(?P<path>.*/)(?:css|js|tmpl)/(?P<rest>.*)$@',
-			$asset,
-			$matches
-		);
+		$folders = array();
+		$ext = static::_get_file_extension($asset);
+		$type = is_string(static::$_folders[$ext]) ?
+				array(static::$_folders[$ext]) : static::$_folders[$ext];
+		$folders = array_merge($folders, $type);
+		$asset_paths = str_replace('/', '', implode('|', $folders));
+
+		$regex = "@^public/(?P<path>.*/)(?:{$asset_paths})/(?P<rest>.*)$@";
+		preg_match($regex, $asset, $matches);
 
 		return array(
 			'file' => $matches['rest'],
-			'path' => $matches['path']
+			'path' => $matches['path'],
 		);
+	}
+
+	/**
+	 * Get the file extension of a file
+	 */
+	protected static function _get_file_extension($file_name)
+	{
+	  return substr(strrchr($file_name,'.'),1);
 	}
 
 	/**
