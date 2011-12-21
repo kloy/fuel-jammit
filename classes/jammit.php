@@ -1,4 +1,12 @@
 <?php
+/**
+ * Jammit class
+ *
+ * @version    1.0
+ * @author     Keith Loy
+ * @license    MIT License
+ * @copyright  2011-2012 Keith Loy
+ */
 
 namespace Jammit;
 
@@ -64,6 +72,22 @@ class Jammit extends \Asset {
 	}
 
 	/**
+	 * Adds path to search when finding assets.
+	 *
+	 * @param string $path
+	 *
+	 * @access public
+	 * @static
+	 */
+	public static function add_path($path)
+	{
+		if(!in_array($path, static::$_asset_paths))
+		{
+			array_unshift(static::$_asset_paths, str_replace('../', '', $path));
+		}
+	}
+
+	/**
 	 * Split $asset string on asset type css, js, tmpl. Remove
 	 * public and asset type from path. Return an array
 	 * containing a properly formatted Asset path and Asset.
@@ -123,22 +147,6 @@ class Jammit extends \Asset {
 					static::_add_asset($asset_split['file'], $group);
 				}
 			}
-		}
-	}
-
-	/**
-	 * Adds path to search when finding assets.
-	 *
-	 * @param string $path
-	 *
-	 * @access public
-	 * @static
-	 */
-	public static function add_path($path)
-	{
-		if(!in_array($path, static::$_asset_paths))
-		{
-			array_unshift(static::$_asset_paths, str_replace('../', '', $path));
 		}
 	}
 
