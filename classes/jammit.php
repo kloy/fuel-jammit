@@ -94,29 +94,6 @@ class Jammit extends \Asset {
 	}
 
 	/**
-	 * Returns container folders for given file.
-	 *
-	 * @access protected
-	 * @static
-	 * @return array
-	 */
-	protected static function _get_folders_for_file($file_name)
-	{
-		$type = static::_get_file_extension($file_name);
-		$folders = array();
-		if(is_string(static::$_folders[$type]))
-		{
-			$folders[] = static::$_folders[$type];
-		}
-		else
-		{
-			$folders = static::$_folders[$type];
-		}
-
-		return $folders;
-	}
-
-	/**
 	 * Renders the given group.  Each tag will be separated by a line break.
 	 * You can optionally tell it to render the files raw.  This means that
 	 * all CSS and JS files in the group will be read and the contents included
@@ -137,6 +114,7 @@ class Jammit extends \Asset {
 		$css = '';
 		$js = '';
 		$img = '';
+		$tmpl = '';
 		foreach ($group as $key => $item)
 		{
 			$type = $item['type'];
@@ -210,12 +188,38 @@ class Jammit extends \Asset {
 
 					$img .= html_tag('img', $attr );
 				break;
+				case 'tmpl':
+					$tmpl .= static::_render_tmpl($file);
+				break;
 			}
 
 		}
 
 		// return them in the correct order
-		return $css.$js.$img;
+		return $css.$js.$img.$tmpl;
+	}
+
+	protected static function _render_tmpl($template)
+	{
+		$template_array = explode('/', $template);
+        $template_name = substr(end($template_array), 0, -4);
+        $template_name = explode('?', $template_name);
+        $template_name = array_shift($template_name);
+        $template_name = str_replace('.jst', '', $template_name);
+		$template_contents = addslashes(
+			preg_replace("/[\n\r\t ]+/"," ",file_get_contents($template))
+		);
+		$script_contents = '(function(){'
+						 . PHP_EOL
+						 . 'window.JST = window.JST || {};'
+						 . PHP_EOL
+						 . "window.JST['{$template_name}'] = "
+						 . "'{$template_contents}';"
+						 . PHP_EOL
+						 . '})()';
+
+		return html_tag('script', array('type' => 'text/javascript'),
+			$script_contents).PHP_EOL;
 	}
 
 	/**
@@ -244,6 +248,37 @@ class Jammit extends \Asset {
 		{
 			array_unshift(static::$_asset_paths, str_replace('../', '', $path));
 		}
+	}
+
+	/**
+	 * Add a template to a group
+	 */
+	public static function tmpl($template, $attr = array(), $group)
+	{
+		static::_parse_assets('tmpl', $template, $attr, $group);
+	}
+
+	/**
+	 * Returns container folders for given file.
+	 *
+	 * @access protected
+	 * @static
+	 * @return array
+	 */
+	protected static function _get_folders_for_file($file_name)
+	{
+		$type = static::_get_file_extension($file_name);
+		$folders = array();
+		if(is_string(static::$_folders[$type]))
+		{
+			$folders[] = static::$_folders[$type];
+		}
+		else
+		{
+			$folders = static::$_folders[$type];
+		}
+
+		return $folders;
 	}
 
 	/**
@@ -402,11 +437,6 @@ class Jammit extends \Asset {
 				static::$asset_type($asset_name, array(), "{$group}_{$asset_type}");
 			}
 		}
-	}
-
-	public static function tmpl($file_name, $dummy = array(), $group)
-	{
-
 	}
 
 	/**
