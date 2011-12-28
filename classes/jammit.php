@@ -43,6 +43,16 @@ class Jammit extends \Asset {
 	protected static $_env = 'development';
 
 	/**
+	 * The extension used for templates
+	 *
+	 * @var string
+	 *
+	 * @access protected
+	 * @static
+	 */
+	protected static $_tmpl_ext = 'jst';
+
+	/**
 	 * Is jammit already initialized.
 	 *
 	 * @var bool
@@ -72,8 +82,10 @@ class Jammit extends \Asset {
 			'css'	=>	\Config::get('jammit.css_dir', 'css/'),
 			'js' 	=>	\Config::get('jammit.js_dir', 'js/'),
 			'img'	=>	\Config::get('jammit.img_dir', 'img/'),
+			'tmpl'  =>  \Config::get('jammit.js_dir', 'js/'),
 		);
 
+		static::$_tmpl_ext = \Config::get('jammit.tmpl_ext', 'jst');
 		static::$_env = \FUEL::$env;
 		static::_load_yaml_config();
 		static::_add_assets();
@@ -256,11 +268,12 @@ class Jammit extends \Asset {
 	 */
 	protected static function _get_file_and_path($asset)
 	{
-		$folders = array();
-		$ext = static::_get_file_extension($asset);
-		$type = is_string(static::$_folders[$ext]) ?
-				array(static::$_folders[$ext]) : static::$_folders[$ext];
-		$folders = array_merge($folders, $type);
+		$folders     = array();
+		$ext         = static::_get_file_extension($asset);
+		$type        = is_string(static::$_folders[$ext])
+					 ? array(static::$_folders[$ext])
+					 : static::$_folders[$ext];
+		$folders     = array_merge($folders, $type);
 		$asset_paths = str_replace('/', '', implode('|', $folders));
 
 		$regex = "@^public/(?P<path>.*/)(?:{$asset_paths})/(?P<rest>.*)$@";
@@ -277,7 +290,8 @@ class Jammit extends \Asset {
 	 */
 	protected static function _get_file_extension($file_name)
 	{
-	  return substr(strrchr($file_name,'.'),1);
+		$ext = substr(strrchr($file_name,'.'),1);
+		return $ext === static::$_tmpl_ext ? 'tmpl' : $ext;
 	}
 
 	/**
@@ -340,9 +354,18 @@ class Jammit extends \Asset {
 		// grab the first path, since last path added
 		// is most likely the one
 		$asset_type        = static::_get_file_extension($file);
+		// handle tmpl extensions properly
+		if ($asset_type === 'tmpl')
+		{
+			$asset_ext = static::$_tmpl_ext;
+		}
+		else
+		{
+			$asset_ext = $asset_type;
+		}
 		$type_paths        = static::_get_folders_for_file($file);
 		$asset_path        = static::$_asset_paths[0];
-		$end_path          = str_replace('*.'.$asset_type, '', $file);
+		$end_path          = str_replace('*.'.$asset_ext, '', $file);
 		$end_path_exploded = explode('/', $end_path);
 		$wild_prefix       = end($end_path_exploded);
 		$end_path          = str_replace($wild_prefix, '', $end_path);
@@ -367,8 +390,8 @@ class Jammit extends \Asset {
 				.DOCROOT.$asset_path.$type_path.$end_path);
 		}
 
-		$regex = "{$wild_prefix}";
-		$files = \File::read_dir($path, 1, array($regex));
+		$regex = $wild_prefix === '' ? array() : array($wild_prefix);
+		$files = \File::read_dir($path, 1, $regex);
 
 		foreach($files as $file_name)
 		{
@@ -379,6 +402,11 @@ class Jammit extends \Asset {
 				static::$asset_type($asset_name, array(), "{$group}_{$asset_type}");
 			}
 		}
+	}
+
+	public static function tmpl($file_name, $dummy = array(), $group)
+	{
+
 	}
 
 	/**
