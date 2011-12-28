@@ -23,6 +23,16 @@ class Jammit extends \Asset {
 	protected static $_yaml = array();
 
 	/**
+	 * Files already loaded.
+	 *
+	 * @var  array
+	 *
+	 * @access protected
+	 * @static
+	 */
+	protected static $_loaded_files = array();
+
+	/**
 	 * The current server environment.
 	 *
 	 * @var string
@@ -69,6 +79,29 @@ class Jammit extends \Asset {
 		static::_add_assets();
 
 		static::$is_initialized = true;
+	}
+
+	/**
+	 * Returns container folders for given file.
+	 *
+	 * @access protected
+	 * @static
+	 * @return array
+	 */
+	protected static function _get_folders_for_file($file_name)
+	{
+		$type = static::_get_file_extension($file_name);
+		$folders = array();
+		if(is_string(static::$_folders[$type]))
+		{
+			$folders[] = static::$_folders[$type];
+		}
+		else
+		{
+			$folders = static::$_folders[$type];
+		}
+
+		return $folders;
 	}
 
 	/**
@@ -171,6 +204,18 @@ class Jammit extends \Asset {
 
 		// return them in the correct order
 		return $css.$js.$img;
+	}
+
+	/**
+	 * Find out if a file exists in a group
+	 */
+	public static function in_group($file, $group = '')
+	{
+		$group = isset(static::$_groups[$group])
+				? static::$_groups[$group] : array();
+		$flattened_group = \Arr::flatten($group);
+
+		return in_array($file, $flattened_group);
 	}
 
 	/**
@@ -278,17 +323,61 @@ class Jammit extends \Asset {
 		// detect wildcard for all files in path
 		if(strpos($file, '*') !== false)
 		{
-
+			static::_add_wildcard($file, $group);
 		}
 		else
 		{
-			$asset_type = 'css';
-			if(strpos($file, '.js') !== false)
-			{
-				$asset_type = 'js';
-			}
-
+			$asset_type = static::_get_file_extension($file);
 			static::$asset_type($file, array(), "{$group}_{$asset_type}");
+		}
+	}
+
+	/**
+	 * Adds all assets found from wildcard to group
+	 */
+	protected static function _add_wildcard($file, $group)
+	{
+		// grab the first path, since last path added
+		// is most likely the one
+		$asset_type        = static::_get_file_extension($file);
+		$type_paths        = static::_get_folders_for_file($file);
+		$asset_path        = static::$_asset_paths[0];
+		$end_path          = str_replace('*.'.$asset_type, '', $file);
+		$end_path_exploded = explode('/', $end_path);
+		$wild_prefix       = end($end_path_exploded);
+		$end_path          = str_replace($wild_prefix, '', $end_path);
+
+		// find correct type path
+		$path_found = false;
+		foreach($type_paths as $type_path)
+		{
+			if ($path_found)
+			{
+				continue;
+			}
+			if(is_dir(DOCROOT . $asset_path . $type_path . $end_path))
+			{
+				$path       = DOCROOT . $asset_path . $type_path . $end_path;
+				$path_found = true;
+			}
+		}
+		if ( ! $path_found)
+		{
+			throw new \FuelException('Could not find asset path: '
+				.DOCROOT.$asset_path.$type_path.$end_path);
+		}
+
+		$regex = "{$wild_prefix}";
+		$files = \File::read_dir($path, 1, array($regex));
+
+		foreach($files as $file_name)
+		{
+			$asset_name = $end_path . $file_name;
+
+			if (! static::in_group($asset_name, "{$group}_{$asset_type}"))
+			{
+				static::$asset_type($asset_name, array(), "{$group}_{$asset_type}");
+			}
 		}
 	}
 
