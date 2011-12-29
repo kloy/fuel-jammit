@@ -95,7 +95,7 @@ class Loader {
 			$groups = $yaml[$asset_type];
 			foreach($groups as $group => $assets)
 			{
-				if (static::$_env !== 'production')
+				if (static::$_env === 'production')
 				{
 					$package_path = $yaml['package_path'];
 					\Jammit\Jammit::add_path($package_path.'/');
