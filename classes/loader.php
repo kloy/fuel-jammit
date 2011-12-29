@@ -34,6 +34,7 @@ class Loader {
 	 */
 	protected static $_tmpl_ext = 'jst';
 
+	protected static $is_old_ie = false;
 
 	/**
 	 * Is yaml already initialized.
@@ -56,6 +57,11 @@ class Loader {
 		if(static::$is_initialized)
 		{
 			return;
+		}
+
+		if (\Agent::browser() == 'Microsoft Internet Explorer' and \Agent::version() < 8)
+		{
+			static::$is_old_ie = true;
 		}
 
 		static::$_env = \FUEL::$env;
@@ -117,7 +123,14 @@ class Loader {
 	protected static function _load_production_asset($group, $asset_type)
 	{
 		$asset_ext = $asset_type === 'javascripts' ? 'js' : 'css';
-		$asset = $group.'.'.$asset_ext;
+		if (static::$is_old_ie and $asset_ext === 'css')
+		{
+			$asset = $group.'-datauri.'.$asset_ext;
+		}
+		else
+		{
+			$asset = $group.'.'.$asset_ext;
+		}
 		\Jammit\Jammit::$asset_ext($asset, array(), $group.'_'.$asset_ext);
 	}
 
