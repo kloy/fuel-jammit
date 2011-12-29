@@ -13,6 +13,8 @@ Autoloader::add_core_namespace('Jammit');
 
 Autoloader::add_classes(array(
     'Jammit\\Jammit' => __DIR__.'/classes/jammit.php',
+    'Jammit\\Loader' => __DIR__.'/classes/loader.php',
+    'Jammit\\Render' => __DIR__.'/classes/render.php',
 ));
 
 /* End of file bootstrap.php */
