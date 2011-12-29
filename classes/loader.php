@@ -61,7 +61,7 @@ class Loader {
 		static::$_env = \FUEL::$env;
 		static::$_tmpl_ext = \Config::get('jammit.tmpl_ext', 'jst');
 		static::_read_config();
-		static::_add_assets();
+		static::_load_assets();
 		static::$is_initialized = true;
 	}
 
@@ -77,12 +77,12 @@ class Loader {
 	}
 
 	/**
-	 * Adds assets from Loader::get_config() to Fuel\Asset.
+	 * Loads assets from Loader::get_config() to Fuel\Asset.
 	 *
 	 * @access protected
 	 * @static
 	 */
-	protected static function _add_assets()
+	protected static function _load_assets()
 	{
 		$yaml = static::get_config();
 		$asset_types = array('javascripts', 'stylesheets');
@@ -95,14 +95,30 @@ class Loader {
 			$groups = $yaml[$asset_type];
 			foreach($groups as $group => $assets)
 			{
-				foreach($assets as $asset)
+				if (static::$_env !== 'production')
 				{
-					$asset_split = static::_get_file_and_path($asset);
-					\Jammit\Jammit::add_path($asset_split['path']);
-					static::_add_asset($asset_split['file'], $group);
+					$package_path = $yaml['package_path'];
+					\Jammit\Jammit::add_path($package_path.'/');
+					static::_load_production_asset($group, $asset_type);
+				}
+				else
+				{
+					foreach($assets as $asset)
+					{
+						$asset_split = static::_get_file_and_path($asset);
+						\Jammit\Jammit::add_path($asset_split['path']);
+						static::_add_asset($asset_split['file'], $group);
+					}
 				}
 			}
 		}
+	}
+
+	protected static function _load_production_asset($group, $asset_type)
+	{
+		$asset_ext = $asset_type === 'javascripts' ? 'js' : 'css';
+		$asset = $group.'.'.$asset_ext;
+		\Jammit\Jammit::$asset_ext($asset, array(), $group.'_'.$asset_ext);
 	}
 
 	/**
