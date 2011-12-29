@@ -213,10 +213,11 @@ class Jammit extends \Asset {
 						 . PHP_EOL
 						 . 'window.JST = window.JST || {};'
 						 . PHP_EOL
-						 . "window.JST['{$template_name}'] = "
-						 . "'{$template_contents}';"
+						 . "window.JST['{$template_name}'] = _.template("
+						 . "'{$template_contents}');"
 						 . PHP_EOL
-						 . '})()';
+						 . '})();'
+						 . PHP_EOL;
 
 		return html_tag('script', array('type' => 'text/javascript'),
 			$script_contents).PHP_EOL;
